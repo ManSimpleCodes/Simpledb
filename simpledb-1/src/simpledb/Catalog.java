@@ -74,12 +74,11 @@ public class Catalog {
 	 */
 	public int getTableId(String name) {
 		// some code goes here
-        //throw new UnsupportedOperationException("Implement this");
-		Integer id = name2tableID.get(name);
-		if(id == null){
-			throw new NoSuchElementException("table does not exist");
-		} 
-		else return id;
+		Integer tableID = name2tableID.get(name);
+		if (tableID == null)
+			throw new NoSuchElementException();
+		else
+			return tableID;
 	}
 
 	/**
@@ -92,14 +91,12 @@ public class Catalog {
 	 */
 	public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
 		// some code goes here
-        //throw new UnsupportedOperationException("Implement this");
-		TupleDesc tupleDesc = tableID2desc.get(tableid);
-		if(tupleDesc == null){
-			throw new NoSuchElementException("table does not exist");
-		}
-		else return tupleDesc;
+		TupleDesc desc = tableID2desc.get(tableid);
+		if (desc == null)
+			throw new NoSuchElementException();
+		else
+			return desc;
 	}
-	
 
 	/**
 	 * Returns the DbFile that can be used to read the contents of the specified table.
@@ -111,12 +108,11 @@ public class Catalog {
 	 */
 	public DbFile getDbFile(int tableid) throws NoSuchElementException {
 		// some code goes here
-        //throw new UnsupportedOperationException("Implement this");
 		DbFile dbFile = tableID2dbFile.get(tableid);
-		if(dbFile == null){
-			throw new NoSuchElementException("table does not exist");
-		}
-		else return dbFile;
+		if (dbFile == null)
+			throw new NoSuchElementException();
+		else
+			return dbFile;
 	}
 
 	/**

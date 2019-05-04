@@ -1,7 +1,6 @@
 package simpledb;
 
 import java.io.*;
-
 import java.util.*;
 
 /**
@@ -62,22 +61,16 @@ public class BufferPool {
 			throws TransactionAbortedException, DbException {
 		Page page = id2page.get(pid);
 		// some code goes here
-       // throw new UnsupportedOperationException("Implement this");
-		if(id2page.size() > numPages){
-			throw new DbException("insufficient space in the buffer pool");
-		}
-		else if(page != null) {
-			//System.out.println(page);
+		if (page != null) {
 			return page;
+		} else {
+			if (id2page.size() >= numPages) {
+				throw new DbException("Buffer pool is full already!");
+			}
+			Page newpage = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
+			id2page.put(pid, newpage);
+			return newpage;
 		}
-		else {
-			DbFile dbFile = Database.getCatalog().getDbFile(pid.getTableId());
-			page = dbFile.readPage(pid);
-			id2page.put(pid, page);
-			//System.out.println(page);
-			return page;
-		}
-		
 	}
 
 	/**

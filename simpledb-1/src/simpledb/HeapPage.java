@@ -1,4 +1,5 @@
 package simpledb;
+
 import java.util.*;
 import java.io.*;
 
@@ -92,17 +93,20 @@ public class HeapPage implements Page {
 	 */
 	public Tuple getTuple(int entryID) {
 		// some code goes here
-		//throw new UnsupportedOperationException("Implement this");
-		//System.out.println("value of data"+location);
-		int location = this.tupleLocation(entryID);
-		if(entryID >= 0 && entryID < this.entryCount()){
-		Tuple tuple = this.createTuple(new DataInputStream(new ByteArrayInputStream(data,location,data.length-location)));
-		tuple.setRecordId(new RecordId(pid,entryID));
-		return tuple;
-		}
-		else 
+		if (entryID < 0 || entryID >= entryCount())
 			return null;
-		
+		else {
+			int location = tupleLocation(entryID);
+			if (location == -1)
+				return null;
+			else {
+				DataInputStream in = new DataInputStream(
+						new ByteArrayInputStream(data, location, data.length - location));
+				Tuple t = createTuple(in);
+				t.setRecordId(new RecordId(pid, entryID));
+				return t;
+			}
+		}
 	}
 
 	/**
@@ -112,20 +116,14 @@ public class HeapPage implements Page {
 	 */
 	public Iterator<Tuple> iterator() {
 		// some code goes here
-		//throw new UnsupportedOperationException("Implement this");
-		ArrayList<Tuple> tuplelist = new ArrayList<Tuple>();
-		if(this.entryCount() != 0) {
-		for(int i = 0; i < this.entryCount(); i++) {
-			if(getTuple(i) != null) {
-				tuplelist.add(getTuple(i));
-			}
+		LinkedList<Tuple> tuples = new LinkedList<Tuple>();
+		int count = entryCount();
+		for (int i = 0; i < count; i++) {
+			Tuple t = getTuple(i);
+			if (t != null)
+				tuples.add(t);
 		}
-		Iterator<Tuple> tupleIterator = tuplelist.iterator();
-		return tupleIterator;	
-		} 
-		else {
-			return null;
-		}
+		return tuples.iterator();
 	}
 
 	/**
@@ -138,34 +136,14 @@ public class HeapPage implements Page {
 	 *            the {@code Tuple} to delete
 	 */
 	public void deleteTuple(Tuple t) throws DbException {
-		HeapPageId hpi = (HeapPageId)t.getRecordId().getPageId();
-		int id = t.getRecordId().tupleno();
-		//System.out.println("before "+id +" | "+tupleLocation(id));		
-		if(!pid.equals(hpi)) {
-			throw new DbException("tuple is not on this page ");
-		}
-		int location=this.tupleLocation(id);
-		if(getTuple(id)==null || location==0)
-		saveTupleLocation(id,-1);
-		//System.out.println("after "+id+" | "+tupleLocation(id));
-		//System.out.println("===================================");
-		int count = entryCount();
-		count = count - 1;
-		saveEntryCount(count);
-	}	
-		////////////////////////////////
-	/*	int location=this.tupleLocation(id);
-		location=-1;*/
-	
-	//this.data[tupleLocation(id)] = -1;
-	//saveTupleLocation(id,tupleLocation(id));
-	/*int count = entryCount();
-	count = count -1;
-	saveEntryCount(count);*/
-	//this.data[(entryId)] = -1;
-    
-		
-	
+		// some code goes here
+		RecordId rID = t.getRecordId();
+		int entryID = rID.tupleno();
+		if (rID.getPageId().equals(pid) && entryID < entryCount() && tupleLocation(entryID) != -1)
+			saveTupleLocation(entryID, -1);
+		else
+			throw new DbException("Invalid deletion of " + t);
+	}
 
 	/**
 	 * Adds the specified {@code Tuple} to this {@code HeapPage}; the {@code Tuple} should be updated to reflect that it
@@ -178,41 +156,17 @@ public class HeapPage implements Page {
 	 */
 	public void addTuple(Tuple t) throws DbException {
 		// some code goes here
-		//throw new UnsupportedOperationException("Implement this");
 		byte[] b = toByteArray(t);
-		int id = t.getRecordId().tupleno();
-		if (freeSpaceSize() < b.length + 4 ) {
-			throw new DbException("page is full");
-		}
-		if (!t.getTupleDesc().equals(td)) {
-    		throw new DbException(" TupleDesc not matched.");
-		}
-			int location = endOfFreeSpace() - b.length;
-			int count = this.entryCount();	
-			System.arraycopy(b, 0, data, location, b.length);
-			int newCount = count++;	
-			this.saveEntryCount(newCount);
-			this.saveTupleLocation(id,location);
-			RecordId rid = new RecordId(this.pid,id);
-			t.setRecordId(rid);
-		
-	}	
-	//////////////////////////////////////////////////////////////////////////////////////
-	//for(int count=0; count< entryCount(); count++){
-	//	if(b[count] != null)
-	/*	int count=0;
-		while( count< this.entryCount()){*/
-			//if(this.tupleLocation(entryID))
-/*			b[count]=b
-	saveEntryCount(count);
-	saveTupleLocation(entryId,endOfFreeSpace() - b.length);
-	//count++;
-			RecordId rid = new RecordId(pid,count);
-				t.setRecordId(rid);
+		if (freeSpaceSize() < b.length + 4)
+			throw new DbException("No space!");
+		// TODO compaction
+		int count = entryCount();
+		int location = endOfFreeSpace() - b.length;
+		System.arraycopy(b, 0, data, location, b.length);
+		saveTupleLocation(count, location);
+		saveEntryCount(count + 1);
+		t.setRecordId(new RecordId(pid, count));
 	}
-	//count=readIn(data,0)
-		count++;*/
-	
 
 	/**
 	 * Marks this {@code HeapPage} as dirty/not dirty and record that transaction that did the dirtying
@@ -343,9 +297,8 @@ public class HeapPage implements Page {
 	 * @return the number of entries in this {@code HeapPage}.
 	 */
 	protected int entryCount() {
-		return readInt(data,0);
 		// some code goes here
-		//throw new UnsupportedOperationException("Implement this");
+		return readInt(data, 0);
 	}
 
 	/**
@@ -357,8 +310,7 @@ public class HeapPage implements Page {
 	 */
 	protected int tupleLocation(int entryID) {
 		// some code goes here
-		//throw new UnsupportedOperationException("Implement this");
-		return readInt(data,4+4*entryID);
+		return readInt(data, 4 + 4 * entryID);
 	}
 
 	/**
@@ -423,6 +375,7 @@ public class HeapPage implements Page {
 	protected void compact() {
 		// some code goes here
 		// not necessary for assignment1
+		throw new UnsupportedOperationException("Implement this");
 	}
 
 }

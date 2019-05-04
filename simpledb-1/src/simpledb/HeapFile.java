@@ -64,28 +64,18 @@ public class HeapFile implements DbFile {
 	}
 
 	// see DbFile.java for javadocs
-
-	public Page readPage(PageId pid){
+	public Page readPage(PageId pid) {
 		// some code goes here
-		//throw new UnsupportedOperationException("Implement this");
-				try {
-					if (pid.getTableId() != getId()) {
-						throw new IllegalArgumentException("page not found in file");
-					} 
-					RandomAccessFile randomAccessFile = new RandomAccessFile(file,"rw");
-					byte[] data1 = new byte[BufferPool.PAGE_SIZE];	
-					randomAccessFile.seek(pid.pageno() * BufferPool.PAGE_SIZE);		
-					randomAccessFile.readFully(data1);
-					randomAccessFile.close();
-					HeapPage heapPage = new HeapPage((HeapPageId)pid, data1); 
-					return (Page)heapPage ;			
-					} catch (FileNotFoundException e) {
-						e.printStackTrace();
-					}catch (IOException e) {
-						e.printStackTrace();
-					}
-				return null;
-			
+		byte[] page = new byte[BufferPool.PAGE_SIZE];
+		try {
+			RandomAccessFile fin = new RandomAccessFile(file, "r");
+			fin.seek(pid.pageno() * page.length);
+			fin.read(page);
+			fin.close();
+			return new HeapPage((HeapPageId) pid, page);
+		} catch (IOException e) {
+			throw new NoSuchElementException("Can't find element in file.");
+		}
 	}
 
 	// see DbFile.java for javadocs
@@ -106,6 +96,7 @@ public class HeapFile implements DbFile {
 			throws DbException, IOException, TransactionAbortedException {
 		// some code goes here
 		// not necessary for assignment1
+		
 		return null;
 	}
 
@@ -113,6 +104,7 @@ public class HeapFile implements DbFile {
 	public Page deleteTuple(TransactionId tid, Tuple t) throws DbException, TransactionAbortedException {
 		// some code goes here
 		// not necessary for assignment1
+		
 		return null;
 	}
 
@@ -133,52 +125,39 @@ public class HeapFile implements DbFile {
 
 			@Override
 			public void open() throws DbException, TransactionAbortedException {
-				nextPageID = 0;		
+				nextPageID = 0;
 				// obtains an iterator over all tuples from page 0
-				/*Iterator<Tuple> iterator1 = ((HeapPage) Database.getBufferPool().getPage(tid, new HeapPageId(getId(),nextPageID++),
-						Permissions.READ_WRITE)).iterator();*/
-				ArrayList<Tuple> totalTupleList = new ArrayList<Tuple>();
-				for (int i = 0; i < numPages(); i++) {				 
-				Iterator<Tuple> iterator1 = ((HeapPage) Database.getBufferPool().getPage(tid, new HeapPageId(getId(), nextPageID++),
+				iterator = ((HeapPage) Database.getBufferPool().getPage(tid, new HeapPageId(getId(), nextPageID++),
 						Permissions.READ_WRITE)).iterator();
-				if(iterator1 != null)
-				while(iterator1.hasNext()) {
-					totalTupleList.add(iterator1.next());
-				}
-				}
-				iterator = totalTupleList.iterator();
-				/*System.out.println("iterator"+iterator);
-				System.out.println("np"+nextPageID);*/
 			}
 
 			@Override
 			public boolean hasNext() throws DbException, TransactionAbortedException {
 				// some code goes here
-				//throw new UnsupportedOperationException("Implement this");
-				if(iterator == null) {
-					return false; 
-				}
-				else if(iterator.hasNext()) {
-					return true;
-				} else
+				if (iterator == null)
 					return false;
-					
+				else if (iterator.hasNext())
+					return true;
+				else {
+					do {
+						if (nextPageID >= numPages()) {
+							iterator = null;
+							return false;
+						}
+						iterator = ((HeapPage) Database.getBufferPool().getPage(tid,
+								new HeapPageId(getId(), nextPageID++), Permissions.READ_WRITE)).iterator();
+					} while (!iterator.hasNext());
+					return true;
+				}
 			}
 
 			@Override
 			public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
 				// some code goes here
-				//throw new UnsupportedOperationException("Implement this");
-				if(iterator != null) {	
-					if(iterator.hasNext()) {
-						Tuple tuple1 = iterator.next();
-						return tuple1;
-				    } else {
-				    	throw new NoSuchElementException("no such element found");				
-				      }
-				} else {
-					throw new NoSuchElementException("no such Element found");
-				}
+				if (hasNext())
+					return iterator.next();
+				else
+					throw new NoSuchElementException("There is no tuple available!");
 			}
 
 			@Override

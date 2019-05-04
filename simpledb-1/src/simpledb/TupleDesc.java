@@ -122,12 +122,9 @@ public class TupleDesc {
 	 */
 	public Type getType(int i) throws NoSuchElementException {
 		// some code goes here
-        //throw new UnsupportedOperationException("Implement this");
-		if ( i < types.length  && i >= 0)
-		return this.types[i];
-		else
-			throw new NoSuchElementException("not a valid field reference");
-	
+		if (i >= 0 && i < types.length)
+			return types[i];
+		throw new NoSuchElementException("invalid type index");
 	}
 
 	/**
@@ -169,18 +166,12 @@ public class TupleDesc {
 	 */
 	public String toString() {
 		// some code goes here
-       // throw new UnsupportedOperationException("Implement this");
-		String desc="";
-		for(int i = 0; i < this.types.length; i++){
-			if (i == this.types.length-1){
-				desc = desc + types[i] + "("+names[i]+")";
-			}
-			else {
-			desc = desc + types[i] +"(" + names[i] + ")|";
-			}
+		String s = "";
+		for (int i = 0; i < types.length; i++) {
+			s += ((i > 0 ? "|" : "") + types[i].toString());
+			if (names[i] != null)
+				s += "(" + names[i] + ")";
 		}
-        //desc = desc.substring(0, desc.length() - 1);
-       // System.out.println(desc);
-		return desc;
+		return s;
 	}
 }
